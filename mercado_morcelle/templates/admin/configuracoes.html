@@ -1,0 +1,47 @@
+{% extends "admin/_admin_base.html" %}
+
+{% block title %}Configurações - Mercado Morcelle{% endblock %}
+{% block page_title %}Configurações{% endblock %}
+
+{% block admin_content %}
+
+<div class="panel" style="max-width: 520px;">
+  <div class="panel-header">
+    <h2>Alterar senha</h2>
+  </div>
+
+  <p class="hint" style="margin-bottom: 18px;">
+    Conta: <strong>{{ usuario.email }}</strong>
+  </p>
+
+  <form action="{{ url_for('admin_configuracoes') }}" method="post">
+    <div class="form-group">
+      <label for="senha_atual">Senha atual *</label>
+      <div class="password-field">
+        <input type="password" id="senha_atual" name="senha_atual" required>
+        <button type="button" class="toggle-password" data-target="senha_atual">MOSTRAR</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="nova_senha">Nova senha *</label>
+      <div class="password-field">
+        <input type="password" id="nova_senha" name="nova_senha" required minlength="8">
+        <button type="button" class="toggle-password" data-target="nova_senha">MOSTRAR</button>
+      </div>
+      <p class="hint">Mínimo de 8 caracteres.</p>
+    </div>
+
+    <div class="form-group">
+      <label for="confirmar_senha">Confirmar nova senha *</label>
+      <div class="password-field">
+        <input type="password" id="confirmar_senha" name="confirmar_senha" required minlength="8">
+        <button type="button" class="toggle-password" data-target="confirmar_senha">MOSTRAR</button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">ALTERAR SENHA</button>
+  </form>
+</div>
+
+{% endblock %}

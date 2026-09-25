@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}Página não encontrada - Mercado Morcelle{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="error-page">
+    <div class="code">404</div>
+    <p>Ops! A página que você procura não foi encontrada.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Voltar para o início</a>
+  </div>
+</div>
+{% endblock %}

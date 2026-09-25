@@ -1,0 +1,43 @@
+{% extends "admin/_admin_base.html" %}
+
+{% block title %}Logs - Mercado Morcelle{% endblock %}
+{% block page_title %}Logs do sistema{% endblock %}
+
+{% block admin_content %}
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Últimas {{ logs|length }} ações</h2>
+  </div>
+
+  {% if logs %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>Ação</th>
+            <th>Descrição</th>
+            <th>Data</th>
+            <th>Hora</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+            <tr>
+              <td>{{ log.usuario_nome or "—" }}</td>
+              <td><strong>{{ log.acao }}</strong></td>
+              <td>{{ log.descricao }}</td>
+              <td>{{ log.data_hora.split("T")[0] }}</td>
+              <td>{{ log.data_hora.split("T")[1] if "T" in log.data_hora else "" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p style="color: var(--gray-500);">Nenhum registro de log ainda.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

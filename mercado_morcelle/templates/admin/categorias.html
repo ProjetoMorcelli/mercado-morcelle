@@ -1,0 +1,63 @@
+{% extends "admin/_admin_base.html" %}
+
+{% block title %}Categorias - Mercado Morcelle{% endblock %}
+{% block page_title %}Categorias{% endblock %}
+
+{% block admin_content %}
+
+<div class="panel" style="max-width: 600px;">
+  <div class="panel-header">
+    <h2>Nova categoria</h2>
+  </div>
+  <form action="{{ url_for('admin_categorias') }}" method="post" style="display:flex; gap: 10px; align-items:flex-start;">
+    <div class="form-group" style="flex:1; margin-bottom:0;">
+      <input type="text" name="nome" required placeholder="Nome da categoria (ex: Mercearia)">
+    </div>
+    <button type="submit" class="btn btn-primary">ADICIONAR</button>
+  </form>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Categorias cadastradas ({{ categorias|length }})</h2>
+  </div>
+
+  {% if categorias %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Produtos</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for categoria in categorias %}
+            <tr>
+              <td>
+                <form action="{{ url_for('admin_categoria_editar', categoria_id=categoria.id) }}" method="post" style="display:flex; gap:8px; align-items:center;">
+                  <input type="text" name="nome" value="{{ categoria.nome }}" style="max-width: 220px; padding: 7px 10px;">
+                  <button type="submit" class="btn btn-outline btn-sm">Salvar</button>
+                </form>
+              </td>
+              <td>{{ categoria.total_produtos }}</td>
+              <td>
+                <form id="del-cat-{{ categoria.id }}" action="{{ url_for('admin_categoria_excluir', categoria_id=categoria.id) }}" method="post"></form>
+                <button type="button" class="btn btn-danger btn-sm"
+                        data-confirm-form="del-cat-{{ categoria.id }}"
+                        data-confirm-message="Excluir a categoria &quot;{{ categoria.nome }}&quot;? Os produtos dela ficarão sem categoria.">
+                  Excluir
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p style="color: var(--gray-500);">Nenhuma categoria cadastrada.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

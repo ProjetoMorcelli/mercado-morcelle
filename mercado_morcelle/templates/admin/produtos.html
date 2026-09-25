@@ -1,0 +1,91 @@
+{% extends "admin/_admin_base.html" %}
+
+{% block title %}Produtos - Mercado Morcelle{% endblock %}
+{% block page_title %}Produtos{% endblock %}
+
+{% block admin_content %}
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Todos os produtos ({{ produtos|length }})</h2>
+    <a href="{{ url_for('admin_produto_novo') }}" class="btn btn-primary btn-sm">➕ Adicionar produto</a>
+  </div>
+
+  {% if produtos %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Imagem</th>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Preço</th>
+            <th>Status</th>
+            <th>Promoção</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for produto in produtos %}
+            <tr>
+              <td>
+                {% if produto.imagem_principal %}
+                  <img class="table-thumb" src="{{ url_for('static', filename='uploads/produtos/' ~ produto.imagem_principal) }}" alt="{{ produto.nome }}">
+                {% else %}
+                  <div class="table-thumb-empty">📦</div>
+                {% endif %}
+              </td>
+              <td><strong>{{ produto.nome }}</strong></td>
+              <td>{{ produto.categoria.nome if produto.categoria else "—" }}</td>
+              <td>R$ {{ "%.2f"|format(produto.preco)|replace(".", ",") }}</td>
+              <td>
+                {% if produto.ativo %}
+                  <span class="status-pill status-ativo">Ativo</span>
+                {% else %}
+                  <span class="status-pill status-inativo">Inativo</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if produto.promocao %}
+                  <span class="status-pill status-promo">{{ produto.promocao.percentual_desconto|round|int }}% OFF</span>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                <div class="actions-cell">
+                  <a href="{{ url_for('admin_produto_editar', produto_id=produto.id) }}" class="btn btn-outline btn-sm">Editar</a>
+
+                  {% if produto.ativo %}
+                    <form action="{{ url_for('admin_produto_desativar', produto_id=produto.id) }}" method="post" style="display:inline;">
+                      <button type="submit" class="btn btn-outline btn-sm">Desativar</button>
+                    </form>
+                  {% else %}
+                    <form action="{{ url_for('admin_produto_ativar', produto_id=produto.id) }}" method="post" style="display:inline;">
+                      <button type="submit" class="btn btn-success btn-sm">Ativar</button>
+                    </form>
+                  {% endif %}
+
+                  <form id="del-produto-{{ produto.id }}" action="{{ url_for('admin_produto_excluir', produto_id=produto.id) }}" method="post" style="display:inline;"></form>
+                  <button type="button" class="btn btn-danger btn-sm"
+                          data-confirm-form="del-produto-{{ produto.id }}"
+                          data-confirm-message="Tem certeza que deseja excluir o produto &quot;{{ produto.nome }}&quot;? Esta ação também removerá suas imagens e promoções.">
+                    Excluir
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="icon">📦</div>
+      <p>Nenhum produto cadastrado ainda.</p>
+      <a href="{{ url_for('admin_produto_novo') }}" class="btn btn-primary" style="margin-top: 12px;">Cadastrar primeiro produto</a>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

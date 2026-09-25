@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Mercado Morcelle - Ofertas e Produtos{% endblock %}
+
+{% block content %}
+
+<section class="banner">
+  <div class="container banner-inner">
+    <div class="banner-text">
+      <h1>O jornal digital de ofertas do Mercado Morcelle</h1>
+      <p>Confira os melhores preços, promoções e novidades da nossa loja, direto no seu celular ou computador.</p>
+    </div>
+    <div class="banner-badge">🛒 Atualizado todos os dias</div>
+  </div>
+</section>
+
+<div class="container">
+
+  {% if produtos_em_oferta %}
+  <section class="section" id="ofertas">
+    <div class="section-title">
+      <div>
+        <h2>Ofertas em <span class="highlight">destaque</span></h2>
+        <p class="section-subtitle">Preços especiais por tempo limitado</p>
+      </div>
+    </div>
+
+    <div class="product-grid">
+      {% for produto in produtos_em_oferta %}
+        {% include "_product_card.html" %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="section" id="categorias">
+    <div class="section-title">
+      <div>
+        <h2>Todos os <span class="highlight">produtos</span></h2>
+        <p class="section-subtitle">Navegue por categoria ou pesquise o que você precisa</p>
+      </div>
+    </div>
+
+    <form action="{{ url_for('index') }}" method="get">
+      {% if busca %}<input type="hidden" name="q" value="{{ busca }}">{% endif %}
+      <div class="category-chips">
+        <a href="{{ url_for('index', q=busca) if busca else url_for('index') }}"
+           class="category-chip {% if not categoria_selecionada %}active{% endif %}">
+          Todas
+        </a>
+        {% for categoria in categorias %}
+          <a href="{{ url_for('index', categoria=categoria.id, q=busca) if busca else url_for('index', categoria=categoria.id) }}"
+             class="category-chip {% if categoria_selecionada == categoria.id|string %}active{% endif %}">
+            {{ categoria.nome }}
+          </a>
+        {% endfor %}
+      </div>
+    </form>
+
+    {% if produtos %}
+      <div class="product-grid">
+        {% for produto in produtos %}
+          {% include "_product_card.html" %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="icon">🔎</div>
+        <p>Nenhum produto encontrado{% if busca %} para "<strong>{{ busca }}</strong>"{% endif %}.</p>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+
+{% endblock %}

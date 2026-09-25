@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Painel Administrativo - Mercado Morcelle{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <div class="admin-layout">
+    <aside class="admin-sidebar" id="adminSidebar">
+      <div class="sidebar-brand">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Mercado Morcelle">
+        <span>Mercado Morcelle</span>
+      </div>
+
+      <nav>
+        <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">📊 Dashboard</a>
+        <a href="{{ url_for('admin_produtos') }}" class="{% if request.endpoint in ['admin_produtos', 'admin_produto_editar'] %}active{% endif %}">📦 Produtos</a>
+        <a href="{{ url_for('admin_produto_novo') }}" class="{% if request.endpoint == 'admin_produto_novo' %}active{% endif %}">➕ Adicionar produto</a>
+        <a href="{{ url_for('admin_categorias') }}" class="{% if request.endpoint == 'admin_categorias' %}active{% endif %}">🏷️ Categorias</a>
+        <a href="{{ url_for('admin_promocoes') }}" class="{% if request.endpoint in ['admin_promocoes', 'admin_promocao_nova', 'admin_promocao_editar'] %}active{% endif %}">🔥 Promoções</a>
+        <a href="{{ url_for('admin_logs') }}" class="{% if request.endpoint == 'admin_logs' %}active{% endif %}">🗒️ Logs</a>
+        <a href="{{ url_for('admin_configuracoes') }}" class="{% if request.endpoint == 'admin_configuracoes' %}active{% endif %}">⚙️ Configurações</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-name">👤 {{ usuario_logado }}</div>
+        <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm btn-block">Sair</a>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div style="display:flex; align-items:center; gap: 12px;">
+          <button class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menu">☰</button>
+          <h1>{% block page_title %}Painel Administrativo{% endblock %}</h1>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-outline btn-sm" target="_blank">Ver site ↗</a>
+      </div>
+
+      <div class="flash-container" style="max-width: none; margin: 20px 28px 0; padding: 0;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for categoria, mensagem in messages %}
+              <div class="alert alert-{{ categoria }}">
+                <span>{{ mensagem }}</span>
+                <button class="alert-close" aria-label="Fechar">✕</button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <div class="admin-content">
+        {% block admin_content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de confirmação genérico -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+      <div class="icon">⚠️</div>
+      <h3>Tem certeza?</h3>
+      <p id="confirmModalMessage">Esta ação não poderá ser desfeita.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="confirmModalCancelBtn">CANCELAR</button>
+        <button type="button" class="btn btn-danger" id="confirmModalConfirmBtn">EXCLUIR</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

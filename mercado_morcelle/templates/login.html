@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Mercado Morcelle</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <div class="login-page">
+    <div class="login-card">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Mercado Morcelle" class="logo">
+      <h1>Mercado Morcelle</h1>
+      <p class="subtitle">Acesse o painel administrativo</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for categoria, mensagem in messages %}
+            <div class="alert alert-{{ categoria }}" style="margin-bottom: 18px; text-align:left;">
+              <span>{{ mensagem }}</span>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form action="{{ url_for('login') }}" method="post">
+        <input type="hidden" name="proximo" value="{{ proximo }}">
+
+        <div class="form-group">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" name="email" required autofocus placeholder="seu@email.com">
+        </div>
+
+        <div class="form-group">
+          <label for="senha">Senha</label>
+          <div class="password-field">
+            <input type="password" id="senha" name="senha" required placeholder="Sua senha">
+            <button type="button" class="toggle-password" data-target="senha">MOSTRAR</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">ENTRAR</button>
+      </form>
+
+      <a href="{{ url_for('index') }}" class="back-home">← Voltar para o site</a>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

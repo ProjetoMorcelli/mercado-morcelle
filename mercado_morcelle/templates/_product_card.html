@@ -1,0 +1,33 @@
+<a href="{{ url_for('produto_detalhes', produto_id=produto.id) }}" class="card-link">
+  <div class="product-card">
+    <div class="card-image">
+      {% if produto.imagem_principal %}
+        <img src="{{ url_for('static', filename='uploads/produtos/' ~ produto.imagem_principal) }}"
+             alt="{{ produto.nome }}" loading="lazy">
+      {% else %}
+        <div class="no-image">📦</div>
+      {% endif %}
+
+      {% if produto.promocao %}
+        <span class="badge-offer">OFERTA</span>
+      {% endif %}
+    </div>
+
+    <div class="card-body">
+      {% if produto.categoria %}
+        <span class="card-category">{{ produto.categoria.nome }}</span>
+      {% endif %}
+      <h3 class="card-name">{{ produto.nome }}</h3>
+
+      <div class="card-prices">
+        {% if produto.promocao %}
+          <div class="price-normal">R$ {{ "%.2f"|format(produto.preco)|replace(".", ",") }}</div>
+          <div class="price-current on-offer">R$ {{ "%.2f"|format(produto.promocao.preco_promocional)|replace(".", ",") }}</div>
+          <span class="discount-tag">{{ produto.promocao.percentual_desconto|round|int }}% OFF</span>
+        {% else %}
+          <div class="price-current">R$ {{ "%.2f"|format(produto.preco)|replace(".", ",") }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</a>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Mercado Morcelle{% endblock %}</title>
+  <meta name="description" content="Mercado Morcelle - Confira nossos produtos e ofertas.">
+  <link rel="icon" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
+  <link rel="manifest" href="{{ url_for('manifest') }}">
+  <meta name="theme-color" content="#2473ab">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-inner" id="headerInner">
+      <a href="{{ url_for('index') }}" class="brand">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Mercado Morcelle" class="logo">
+        <span class="brand-name">Mercado <span>Morcelle</span></span>
+      </a>
+
+      <nav class="main-nav">
+        <a href="{{ url_for('index') }}">Início</a>
+        <a href="{{ url_for('index') }}#categorias">Categorias</a>
+        <a href="{{ url_for('index') }}#ofertas">Ofertas</a>
+      </nav>
+
+      <div class="header-search">
+        <form action="{{ url_for('index') }}" method="get">
+          <button type="submit" aria-label="Pesquisar">🔍</button>
+          <input type="search" name="q" placeholder="Pesquisar produto..." value="{{ request.args.get('q', '') }}">
+        </form>
+      </div>
+
+      <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu">☰</button>
+    </div>
+  </header>
+
+  <div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for categoria, mensagem in messages %}
+          <div class="alert alert-{{ categoria }}">
+            <span>{{ mensagem }}</span>
+            <button class="alert-close" aria-label="Fechar">✕</button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Mercado Morcelle">
+          <div>
+            <strong>Mercado Morcelle</strong>
+            <div class="footer-tagline">Qualidade, bons preços e atendimento.</div>
+          </div>
+        </div>
+        <ul class="footer-links">
+          <li><a href="{{ url_for('index') }}">Início</a></li>
+          <li><a href="{{ url_for('index') }}#categorias">Categorias</a></li>
+          <li><a href="{{ url_for('index') }}#ofertas">Ofertas</a></li>
+          <li><a href="{{ url_for('login') }}">Área administrativa</a></li>
+        </ul>
+      </div>
+      <div class="footer-bottom">
+        © {{ ano_atual }} Mercado Morcelle — Todos os direitos reservados.
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

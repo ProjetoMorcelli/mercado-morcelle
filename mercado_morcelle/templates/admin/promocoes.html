@@ -1,0 +1,83 @@
+{% extends "admin/_admin_base.html" %}
+
+{% block title %}Promoções - Mercado Morcelle{% endblock %}
+{% block page_title %}Promoções{% endblock %}
+
+{% block admin_content %}
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Todas as promoções ({{ promocoes|length }})</h2>
+    <a href="{{ url_for('admin_promocao_nova') }}" class="btn btn-primary btn-sm">➕ Nova promoção</a>
+  </div>
+
+  {% if promocoes %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Preço normal</th>
+            <th>Preço promocional</th>
+            <th>Desconto</th>
+            <th>Período</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for promocao in promocoes %}
+            <tr>
+              <td><strong>{{ promocao.produto_nome }}</strong></td>
+              <td>R$ {{ "%.2f"|format(promocao.produto_preco)|replace(".", ",") }}</td>
+              <td>R$ {{ "%.2f"|format(promocao.preco_promocional)|replace(".", ",") }}</td>
+              <td>{{ promocao.percentual_desconto|round|int if promocao.percentual_desconto else 0 }}%</td>
+              <td>{{ promocao.data_inicio }} até {{ promocao.data_fim }}</td>
+              <td>
+                {% if promocao.status_exibicao == "Ativa" %}
+                  <span class="status-pill status-promo">Ativa</span>
+                {% elif promocao.status_exibicao == "Programada" %}
+                  <span class="status-pill status-programada">Programada</span>
+                {% elif promocao.status_exibicao == "Expirada" %}
+                  <span class="status-pill status-expirada">Expirada</span>
+                {% else %}
+                  <span class="status-pill status-inativo">Desativada</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="actions-cell">
+                  <a href="{{ url_for('admin_promocao_editar', promocao_id=promocao.id) }}" class="btn btn-outline btn-sm">Editar</a>
+
+                  {% if promocao.ativa %}
+                    <form action="{{ url_for('admin_promocao_desativar', promocao_id=promocao.id) }}" method="post" style="display:inline;">
+                      <button type="submit" class="btn btn-outline btn-sm">Desativar</button>
+                    </form>
+                  {% else %}
+                    <form action="{{ url_for('admin_promocao_ativar', promocao_id=promocao.id) }}" method="post" style="display:inline;">
+                      <button type="submit" class="btn btn-success btn-sm">Ativar</button>
+                    </form>
+                  {% endif %}
+
+                  <form id="del-promo-{{ promocao.id }}" action="{{ url_for('admin_promocao_excluir', promocao_id=promocao.id) }}" method="post"></form>
+                  <button type="button" class="btn btn-danger btn-sm"
+                          data-confirm-form="del-promo-{{ promocao.id }}"
+                          data-confirm-message="Excluir esta promoção?">
+                    Excluir
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="icon">🔥</div>
+      <p>Nenhuma promoção cadastrada ainda.</p>
+      <a href="{{ url_for('admin_promocao_nova') }}" class="btn btn-primary" style="margin-top: 12px;">Criar primeira promoção</a>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

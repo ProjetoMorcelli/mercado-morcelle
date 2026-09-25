@@ -1,0 +1,64 @@
+{% extends "admin/_admin_base.html" %}
+
+{% block title %}{% if promocao %}Editar Promoção{% else %}Nova Promoção{% endif %} - Mercado Morcelle{% endblock %}
+{% block page_title %}{% if promocao %}Editar Promoção{% else %}Nova Promoção{% endif %}{% endblock %}
+
+{% block admin_content %}
+
+{% set produto_valor = form.get('produto_id') if form else (promocao.produto_id|string if promocao else '') %}
+{% set preco_valor = form.get('preco_promocional') if form else (promocao.preco_promocional if promocao else '') %}
+{% set data_inicio_valor = form.get('data_inicio') if form else (promocao.data_inicio if promocao else '') %}
+{% set data_fim_valor = form.get('data_fim') if form else (promocao.data_fim if promocao else '') %}
+{% set ativa_valor = (form.get('ativa') == 'on') if form else (promocao.ativa if promocao else True) %}
+
+<div class="panel" style="max-width: 640px;">
+  <form action="{% if promocao %}{{ url_for('admin_promocao_editar', promocao_id=promocao.id) }}{% else %}{{ url_for('admin_promocao_nova') }}{% endif %}"
+        method="post">
+
+    <div class="form-group">
+      <label for="produto_id">Produto *</label>
+      <select id="produto_id" name="produto_id" required>
+        <option value="">Selecione um produto...</option>
+        {% for produto in produtos %}
+          <option value="{{ produto.id }}" data-preco="{{ produto.preco }}" {% if produto_valor == produto.id|string %}selected{% endif %}>
+            {{ produto.nome }} (R$ {{ "%.2f"|format(produto.preco)|replace(".", ",") }})
+          </option>
+        {% endfor %}
+      </select>
+      <p class="hint">O preço promocional não pode ser maior ou igual ao preço normal do produto.</p>
+    </div>
+
+    <div class="form-group">
+      <label for="preco_promocional">Preço promocional (R$) *</label>
+      <input type="text" id="preco_promocional" name="preco_promocional" required
+             value="{{ preco_valor }}" placeholder="0,00">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="data_inicio">Data inicial *</label>
+        <input type="date" id="data_inicio" name="data_inicio" required value="{{ data_inicio_valor }}">
+      </div>
+      <div class="form-group">
+        <label for="data_fim">Data final *</label>
+        <input type="date" id="data_fim" name="data_fim" required value="{{ data_fim_valor }}">
+      </div>
+    </div>
+
+    {% if promocao %}
+      <div class="checkbox-row">
+        <input type="checkbox" id="ativa" name="ativa" {% if ativa_valor %}checked{% endif %}>
+        <label for="ativa">Promoção ativa</label>
+      </div>
+    {% endif %}
+
+    <div style="display:flex; gap: 12px; margin-top: 24px;">
+      <button type="submit" class="btn btn-primary">
+        {% if promocao %}SALVAR ALTERAÇÕES{% else %}CRIAR PROMOÇÃO{% endif %}
+      </button>
+      <a href="{{ url_for('admin_promocoes') }}" class="btn btn-outline">CANCELAR</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

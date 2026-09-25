@@ -1,0 +1,65 @@
+{% extends "admin/_admin_base.html" %}
+
+{% block title %}Dashboard - Mercado Morcelle{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block admin_content %}
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ total_produtos }}</div>
+    <div class="stat-label">TOTAL DE PRODUTOS</div>
+  </div>
+  <div class="stat-card stat-success">
+    <div class="stat-value">{{ produtos_ativos }}</div>
+    <div class="stat-label">PRODUTOS ATIVOS</div>
+  </div>
+  <div class="stat-card stat-danger">
+    <div class="stat-value">{{ produtos_inativos }}</div>
+    <div class="stat-label">PRODUTOS INATIVOS</div>
+  </div>
+  <div class="stat-card stat-warning">
+    <div class="stat-value">{{ promocoes_ativas }}</div>
+    <div class="stat-label">PROMOÇÕES ATIVAS</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ total_categorias }}</div>
+    <div class="stat-label">TOTAL DE CATEGORIAS</div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <h2>Atividade recente</h2>
+    <a href="{{ url_for('admin_logs') }}" class="btn btn-outline btn-sm">Ver todos os logs</a>
+  </div>
+
+  {% if ultimos_logs %}
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuário</th>
+            <th>Ação</th>
+            <th>Descrição</th>
+            <th>Data / Hora</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in ultimos_logs %}
+            <tr>
+              <td>{{ log.usuario_nome or "—" }}</td>
+              <td>{{ log.acao }}</td>
+              <td>{{ log.descricao }}</td>
+              <td>{{ log.data_hora }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p style="color: var(--gray-500);">Nenhuma atividade registrada ainda.</p>
+  {% endif %}
+</div>
+
+{% endblock %}

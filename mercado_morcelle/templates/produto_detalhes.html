@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}{{ produto.nome }} - Mercado Morcelle{% endblock %}
+
+{% block content %}
+<div class="container" style="padding-top: 28px;">
+
+  <div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Início</a> /
+    {% if produto.categoria %}{{ produto.categoria.nome }} / {% endif %}
+    {{ produto.nome }}
+  </div>
+
+  <div class="product-detail">
+    <div>
+      <div class="detail-main-image" id="mainImageWrapper">
+        {% if produto.imagem_principal %}
+          <img id="mainImage"
+               src="{{ url_for('static', filename='uploads/produtos/' ~ produto.imagem_principal) }}"
+               alt="{{ produto.nome }}">
+        {% else %}
+          <div class="no-image" style="height:100%; font-size: 3rem;">📦</div>
+        {% endif %}
+      </div>
+
+      {% if produto.imagens|length > 1 %}
+        <div class="detail-thumbs">
+          {% for imagem in produto.imagens %}
+            <img src="{{ url_for('static', filename='uploads/produtos/' ~ imagem.arquivo) }}"
+                 alt="{{ produto.nome }}"
+                 onclick="document.getElementById('mainImage').src = this.src;">
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+
+    <div>
+      {% if produto.categoria %}
+        <div class="detail-category">{{ produto.categoria.nome }}</div>
+      {% endif %}
+
+      <h1 class="detail-name">{{ produto.nome }}</h1>
+
+      <div class="detail-prices">
+        {% if produto.promocao %}
+          <div class="detail-price-normal">De R$ {{ "%.2f"|format(produto.preco)|replace(".", ",") }}</div>
+          <div class="detail-price-current on-offer">R$ {{ "%.2f"|format(produto.promocao.preco_promocional)|replace(".", ",") }}</div>
+          <span class="discount-tag">{{ produto.promocao.percentual_desconto|round|int }}% OFF — Oferta válida até {{ produto.promocao.data_fim }}</span>
+        {% else %}
+          <div class="detail-price-current">R$ {{ "%.2f"|format(produto.preco)|replace(".", ",") }}</div>
+        {% endif %}
+      </div>
+
+      {% if produto.descricao %}
+        <div class="detail-description">
+          {{ produto.descricao }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

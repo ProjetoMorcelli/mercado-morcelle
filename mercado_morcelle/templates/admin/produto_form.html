@@ -1,0 +1,103 @@
+{% extends "admin/_admin_base.html" %}
+
+{% block title %}{% if produto %}Editar Produto{% else %}Novo Produto{% endif %} - Mercado Morcelle{% endblock %}
+{% block page_title %}{% if produto %}Editar Produto{% else %}Adicionar Produto{% endif %}{% endblock %}
+
+{% block admin_content %}
+
+<div class="panel" style="max-width: 780px;">
+  <form action="{% if produto %}{{ url_for('admin_produto_editar', produto_id=produto.id) }}{% else %}{{ url_for('admin_produto_novo') }}{% endif %}"
+        method="post" enctype="multipart/form-data">
+
+    {% set nome_valor = form.get('nome') if form else (produto.nome if produto else '') %}
+    {% set descricao_valor = form.get('descricao') if form else (produto.descricao if produto else '') %}
+    {% set categoria_valor = form.get('categoria_id') if form else (produto.categoria_id|string if produto and produto.categoria_id else '') %}
+    {% set preco_valor = form.get('preco') if form else (produto.preco if produto else '') %}
+    {% set ativo_valor = (form.get('ativo') == 'on') if form else (produto.ativo if produto else True) %}
+
+    <div class="form-group">
+      <label for="nome">Nome do produto *</label>
+      <input type="text" id="nome" name="nome" required
+             value="{{ nome_valor }}"
+             placeholder="Ex: Arroz Tipo 1 5kg">
+    </div>
+
+    <div class="form-group">
+      <label for="descricao">Descrição</label>
+      <textarea id="descricao" name="descricao" placeholder="Detalhes sobre o produto...">{{ descricao_valor }}</textarea>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="categoria_id">Categoria</label>
+        <select id="categoria_id" name="categoria_id">
+          <option value="">Selecione...</option>
+          {% for categoria in categorias %}
+            <option value="{{ categoria.id }}" {% if categoria_valor == categoria.id|string %}selected{% endif %}>
+              {{ categoria.nome }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="preco">Preço (R$) *</label>
+        <input type="text" id="preco" name="preco" required
+               value="{{ preco_valor }}"
+               placeholder="0,00">
+      </div>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="ativo" name="ativo" {% if ativo_valor %}checked{% endif %}>
+      <label for="ativo">Produto ativo (visível no site público)</label>
+    </div>
+
+    {% if produto and produto.imagens %}
+      <div class="form-group">
+        <label>Imagens atuais</label>
+        <div class="existing-images">
+          {% for imagem in produto.imagens %}
+            <div class="existing-image {% if imagem.principal %}is-principal{% endif %}">
+              <img src="{{ url_for('static', filename='uploads/produtos/' ~ imagem.arquivo) }}" alt="Imagem do produto">
+              {% if imagem.principal %}
+                <span class="tag-principal">PRINCIPAL</span>
+              {% endif %}
+              <div class="image-actions">
+                {% if not imagem.principal %}
+                  <form action="{{ url_for('admin_imagem_principal', imagem_id=imagem.id) }}" method="post">
+                    <button type="submit" title="Tornar principal">★</button>
+                  </form>
+                {% endif %}
+                <form id="del-img-{{ imagem.id }}" action="{{ url_for('admin_imagem_excluir', imagem_id=imagem.id) }}" method="post"></form>
+                <button type="button" data-confirm-form="del-img-{{ imagem.id }}"
+                        data-confirm-message="Excluir esta imagem?" title="Excluir">✕</button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="form-group">
+      <label>{% if produto %}Adicionar novas imagens{% else %}Imagens do produto{% endif %}</label>
+      <label class="file-upload" for="imagensInput" id="fileUploadLabel">
+        <div class="icon">📷</div>
+        <div class="label">ESCOLHER IMAGENS</div>
+        <div class="sub">JPG, JPEG, PNG ou WEBP — até 5 MB cada. Você pode selecionar várias.</div>
+        <input type="file" id="imagensInput" name="imagens" accept=".jpg,.jpeg,.png,.webp" multiple>
+      </label>
+      <div class="preview-grid" id="previewGrid"></div>
+      <p class="hint">A primeira imagem enviada (quando o produto não tem nenhuma) será marcada como imagem principal.</p>
+    </div>
+
+    <div style="display:flex; gap: 12px; margin-top: 24px;">
+      <button type="submit" class="btn btn-primary">
+        {% if produto %}SALVAR ALTERAÇÕES{% else %}CADASTRAR PRODUTO{% endif %}
+      </button>
+      <a href="{{ url_for('admin_produtos') }}" class="btn btn-outline">CANCELAR</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
