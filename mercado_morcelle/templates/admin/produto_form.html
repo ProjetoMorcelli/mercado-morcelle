@@ -59,7 +59,7 @@
         <div class="existing-images">
           {% for imagem in produto.imagens %}
             <div class="existing-image {% if imagem.principal %}is-principal{% endif %}">
-              <img src="{{ url_for('static', filename='uploads/produtos/' ~ imagem.arquivo) }}" alt="Imagem do produto">
+              <img src="{{ url_imagem(imagem.arquivo) }}" alt="Imagem do produto">
               {% if imagem.principal %}
                 <span class="tag-principal">PRINCIPAL</span>
               {% endif %}
@@ -83,7 +83,7 @@
       <label>{% if produto %}Adicionar novas imagens{% else %}Imagens do produto{% endif %}</label>
       <label class="file-upload" for="imagensInput" id="fileUploadLabel">
         <div class="icon">📷</div>
-        <div class="label">ESCOLHER IMAGENS</div>
+        <div class="label" id="fileUploadLabelText">ESCOLHER IMAGENS</div>
         <div class="sub">JPG, JPEG, PNG ou WEBP — até 5 MB cada. Você pode selecionar várias.</div>
         <input type="file" id="imagensInput" name="imagens" accept=".jpg,.jpeg,.png,.webp" multiple>
       </label>
