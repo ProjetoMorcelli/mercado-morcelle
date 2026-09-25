@@ -30,7 +30,7 @@
             <tr>
               <td>
                 {% if produto.imagem_principal %}
-                  <img class="table-thumb" src="{{ url_for('static', filename='uploads/produtos/' ~ produto.imagem_principal) }}" alt="{{ produto.nome }}">
+                  <img class="table-thumb" src="{{ url_imagem(produto.imagem_principal) }}" alt="{{ produto.nome }}">
                 {% else %}
                   <div class="table-thumb-empty">📦</div>
                 {% endif %}
