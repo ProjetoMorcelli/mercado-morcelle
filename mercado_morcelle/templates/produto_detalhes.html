@@ -16,7 +16,7 @@
       <div class="detail-main-image" id="mainImageWrapper">
         {% if produto.imagem_principal %}
           <img id="mainImage"
-               src="{{ url_for('static', filename='uploads/produtos/' ~ produto.imagem_principal) }}"
+               src="{{ url_imagem(produto.imagem_principal) }}"
                alt="{{ produto.nome }}">
         {% else %}
           <div class="no-image" style="height:100%; font-size: 3rem;">📦</div>
@@ -26,7 +26,7 @@
       {% if produto.imagens|length > 1 %}
         <div class="detail-thumbs">
           {% for imagem in produto.imagens %}
-            <img src="{{ url_for('static', filename='uploads/produtos/' ~ imagem.arquivo) }}"
+            <img src="{{ url_imagem(imagem.arquivo) }}"
                  alt="{{ produto.nome }}"
                  onclick="document.getElementById('mainImage').src = this.src;">
           {% endfor %}
