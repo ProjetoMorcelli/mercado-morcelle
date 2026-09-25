@@ -3,7 +3,7 @@
    dos recursos estáticos. As páginas dinâmicas (produtos, admin) sempre
    buscam dados atualizados na rede. */
 
-const CACHE_NAME = "morcelle-cache-v1";
+const CACHE_NAME = "morcelle-cache-v2";
 const ARQUIVOS_ESTATICOS = [
   "/static/css/style.css",
   "/static/js/script.js",
