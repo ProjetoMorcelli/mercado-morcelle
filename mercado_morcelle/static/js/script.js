@@ -77,7 +77,11 @@ function initTogglePassword() {
 function initImagePreview() {
   var input = document.getElementById("imagensInput");
   var previewGrid = document.getElementById("previewGrid");
-  var fileLabel = document.getElementById("fileUploadLabel");
+  // IMPORTANTE: o <input type="file"> fica DENTRO da <label id="fileUploadLabel">.
+  // Por isso o texto de status usa um elemento filho próprio (fileUploadLabelText)
+  // em vez de sobrescrever o textContent da label inteira — isso apagaria o
+  // próprio <input> do DOM e o arquivo nunca seria enviado ao salvar o formulário.
+  var fileLabelText = document.getElementById("fileUploadLabelText");
   if (!input || !previewGrid) return;
 
   input.addEventListener("change", function () {
@@ -88,8 +92,8 @@ function initImagePreview() {
       return;
     }
 
-    if (fileLabel) {
-      fileLabel.textContent =
+    if (fileLabelText) {
+      fileLabelText.textContent =
         files.length === 1
           ? "1 imagem selecionada"
           : files.length + " imagens selecionadas";
