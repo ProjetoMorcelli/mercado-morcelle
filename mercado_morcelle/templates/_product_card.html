@@ -2,7 +2,7 @@
   <div class="product-card">
     <div class="card-image">
       {% if produto.imagem_principal %}
-        <img src="{{ url_for('static', filename='uploads/produtos/' ~ produto.imagem_principal) }}"
+        <img src="{{ url_imagem(produto.imagem_principal) }}"
              alt="{{ produto.nome }}" loading="lazy">
       {% else %}
         <div class="no-image">📦</div>
