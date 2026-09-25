@@ -1,6 +1,6 @@
 """
 Mercado Morcelle - Sistema Web (Jornal Digital de Ofertas)
-Backend Flask + SQLite + Jinja2
+Backend Flask + SQLite/Postgres + Jinja2
 """
 
 import os
@@ -15,6 +15,9 @@ from flask import (
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+
+import cloudinary
+import cloudinary.uploader
 
 # --------------------------------------------------------------------------
 # CONFIGURAÇÃO
@@ -36,6 +39,36 @@ app.config["MAX_CONTENT_LENGTH"] = MAX_CONTENT_LENGTH
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Banco de dados: se o Render (ou qualquer outro host) fornecer a variável de
+# ambiente DATABASE_URL, usamos Postgres (dados persistem de verdade). Sem
+# essa variável, cai para SQLite local (bom pra rodar no seu computador).
+DATABASE_URL = os.environ.get("DATABASE_URL")
+USE_POSTGRES = bool(DATABASE_URL)
+
+if USE_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
+
+    # O Render (e outros) às vezes fornecem a URL como "postgres://", mas o
+    # psycopg2 aceita normalmente também "postgresql://" — ambos funcionam,
+    # então não precisamos reescrever a URL.
+
+# Cloudinary: usado para guardar as imagens dos produtos, já que o disco do
+# Render (plano free) é apagado a cada deploy/reinício/spin-down. Configure
+# estas 3 variáveis de ambiente no painel do Render (Environment):
+#   CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True,
+)
+CLOUDINARY_CONFIGURADO = bool(
+    os.environ.get("CLOUDINARY_CLOUD_NAME")
+    and os.environ.get("CLOUDINARY_API_KEY")
+    and os.environ.get("CLOUDINARY_API_SECRET")
+)
+
 CATEGORIAS_PADRAO = [
     "Mercearia", "Hortifruti", "Açougue", "Frios",
     "Laticínios", "Higiene", "Limpeza", "Bebidas", "Padaria", "Outros",
@@ -45,12 +78,73 @@ CATEGORIAS_PADRAO = [
 # --------------------------------------------------------------------------
 # BANCO DE DADOS
 # --------------------------------------------------------------------------
+#
+# O resto do arquivo foi escrito originalmente para SQLite (placeholders "?",
+# db.execute(...).fetchone()["coluna"], cur.lastrowid, etc). Os dois wrappers
+# abaixo fazem uma conexão Postgres "se comportar" da mesma forma, pra não
+# precisar reescrever cada consulta do sistema uma por uma.
+
+class _PGCursorWrapper:
+    def __init__(self, cursor):
+        self._cursor = cursor
+        self.lastrowid = None
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    def fetchmany(self, size):
+        return self._cursor.fetchmany(size)
+
+
+class _PGConnectionWrapper:
+    def __init__(self, conn):
+        self._conn = conn
+
+    def execute(self, query, params=()):
+        pg_query = query.replace("?", "%s")
+        is_insert = pg_query.strip().upper().startswith("INSERT")
+        if is_insert and "RETURNING" not in pg_query.upper():
+            pg_query = pg_query.rstrip().rstrip(";") + " RETURNING id"
+
+        cur = self._conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(pg_query, params)
+
+        wrapper = _PGCursorWrapper(cur)
+        if is_insert:
+            try:
+                row = cur.fetchone()
+                if row:
+                    wrapper.lastrowid = row["id"]
+            except Exception:
+                wrapper.lastrowid = None
+        return wrapper
+
+    def commit(self):
+        self._conn.commit()
+
+    def rollback(self):
+        self._conn.rollback()
+
+    def close(self):
+        self._conn.close()
+
+
+def _conectar_postgres():
+    conn = psycopg2.connect(DATABASE_URL)
+    return _PGConnectionWrapper(conn)
+
 
 def get_db():
     if "db" not in g:
-        g.db = sqlite3.connect(DATABASE)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
+        if USE_POSTGRES:
+            g.db = _conectar_postgres()
+        else:
+            g.db = sqlite3.connect(DATABASE)
+            g.db.row_factory = sqlite3.Row
+            g.db.execute("PRAGMA foreign_keys = ON")
     return g.db
 
 
@@ -63,6 +157,116 @@ def close_db(exception=None):
 
 def init_db():
     """Cria o banco, tabelas, categorias e usuário administrador na primeira execução."""
+    if USE_POSTGRES:
+        _init_db_postgres()
+    else:
+        _init_db_sqlite()
+
+
+def _init_db_postgres():
+    conn = psycopg2.connect(DATABASE_URL)
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id SERIAL PRIMARY KEY,
+            nome TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            senha_hash TEXT NOT NULL,
+            tipo TEXT NOT NULL DEFAULT 'admin',
+            criado_em TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS categorias (
+            id SERIAL PRIMARY KEY,
+            nome TEXT NOT NULL UNIQUE,
+            criado_em TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS produtos (
+            id SERIAL PRIMARY KEY,
+            nome TEXT NOT NULL,
+            descricao TEXT,
+            categoria_id INTEGER,
+            preco REAL NOT NULL,
+            ativo INTEGER NOT NULL DEFAULT 1,
+            criado_em TEXT NOT NULL,
+            atualizado_em TEXT NOT NULL,
+            FOREIGN KEY (categoria_id) REFERENCES categorias (id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS imagens_produto (
+            id SERIAL PRIMARY KEY,
+            produto_id INTEGER NOT NULL,
+            arquivo TEXT NOT NULL,
+            public_id TEXT,
+            principal INTEGER NOT NULL DEFAULT 0,
+            criado_em TEXT NOT NULL,
+            FOREIGN KEY (produto_id) REFERENCES produtos (id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS promocoes (
+            id SERIAL PRIMARY KEY,
+            produto_id INTEGER NOT NULL,
+            preco_promocional REAL NOT NULL,
+            percentual_desconto REAL,
+            data_inicio TEXT NOT NULL,
+            data_fim TEXT NOT NULL,
+            ativa INTEGER NOT NULL DEFAULT 1,
+            criado_em TEXT NOT NULL,
+            FOREIGN KEY (produto_id) REFERENCES produtos (id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS logs (
+            id SERIAL PRIMARY KEY,
+            usuario_id INTEGER,
+            acao TEXT NOT NULL,
+            descricao TEXT,
+            data_hora TEXT NOT NULL,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE SET NULL
+        );
+        """
+    )
+    conn.commit()
+
+    # Migração leve: adiciona a coluna public_id se a tabela já existia
+    # (criada antes da integração com o Cloudinary).
+    cur.execute(
+        """SELECT column_name FROM information_schema.columns
+           WHERE table_name = 'imagens_produto'"""
+    )
+    colunas = [r[0] for r in cur.fetchall()]
+    if "public_id" not in colunas:
+        cur.execute("ALTER TABLE imagens_produto ADD COLUMN public_id TEXT")
+        conn.commit()
+
+    # Verifica se já existe algum usuário (equivalente a "primeira execução"
+    # no SQLite, que olhava se o arquivo do banco existia).
+    cur.execute("SELECT COUNT(*) FROM usuarios")
+    ja_tem_usuario = cur.fetchone()[0] > 0
+
+    if not ja_tem_usuario:
+        agora = datetime.now().isoformat(timespec="seconds")
+
+        for nome_cat in CATEGORIAS_PADRAO:
+            cur.execute(
+                "INSERT INTO categorias (nome, criado_em) VALUES (%s, %s) ON CONFLICT (nome) DO NOTHING",
+                (nome_cat, agora),
+            )
+
+        senha_hash = generate_password_hash(ADMIN_SENHA_PADRAO)
+        cur.execute(
+            """INSERT INTO usuarios (nome, email, senha_hash, tipo, criado_em)
+               VALUES (%s, %s, %s, %s, %s) ON CONFLICT (email) DO NOTHING""",
+            ("Administrador", ADMIN_EMAIL_PADRAO, senha_hash, "admin", agora),
+        )
+        conn.commit()
+
+    conn.close()
+
+
+def _init_db_sqlite():
     primeira_execucao = not os.path.exists(DATABASE)
 
     conn = sqlite3.connect(DATABASE)
@@ -102,6 +306,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             produto_id INTEGER NOT NULL,
             arquivo TEXT NOT NULL,
+            public_id TEXT,
             principal INTEGER NOT NULL DEFAULT 0,
             criado_em TEXT NOT NULL,
             FOREIGN KEY (produto_id) REFERENCES produtos (id) ON DELETE CASCADE
@@ -131,6 +336,13 @@ def init_db():
     )
     conn.commit()
 
+    # Migração leve: adiciona a coluna public_id se o banco já existia
+    # (criado antes da integração com o Cloudinary).
+    colunas = [c[1] for c in conn.execute("PRAGMA table_info(imagens_produto)").fetchall()]
+    if "public_id" not in colunas:
+        conn.execute("ALTER TABLE imagens_produto ADD COLUMN public_id TEXT")
+        conn.commit()
+
     if primeira_execucao:
         agora = datetime.now().isoformat(timespec="seconds")
 
@@ -159,29 +371,62 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+@app.template_global()
+def url_imagem(valor):
+    """Converte o valor salvo em imagens_produto.arquivo numa URL exibível.
+
+    Imagens novas já vêm como URL completa do Cloudinary (https://...).
+    Isso também mantém compatibilidade com imagens antigas salvas localmente,
+    caso ainda existam no disco no momento da requisição.
+    """
+    if not valor:
+        return None
+    if valor.startswith("http://") or valor.startswith("https://"):
+        return valor
+    return url_for("static", filename="uploads/produtos/" + valor)
+
+
 def salvar_imagem(arquivo):
-    """Valida e salva um arquivo de imagem enviado, retornando o nome único gerado."""
+    """Valida e envia um arquivo de imagem para o Cloudinary.
+
+    Retorna um dict {"url": ..., "public_id": ...} em caso de sucesso,
+    ou None se o arquivo for inválido/vazio ou o envio falhar.
+    """
     if not arquivo or arquivo.filename == "":
         return None
     if not allowed_file(arquivo.filename):
         return None
 
-    ext = secure_filename(arquivo.filename).rsplit(".", 1)[1].lower()
-    nome_unico = f"produto_{uuid.uuid4().hex[:10]}.{ext}"
-    caminho = os.path.join(app.config["UPLOAD_FOLDER"], nome_unico)
-    arquivo.save(caminho)
-    return nome_unico
+    if not CLOUDINARY_CONFIGURADO:
+        app.logger.error(
+            "Cloudinary não configurado: defina CLOUDINARY_CLOUD_NAME, "
+            "CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET nas variáveis de ambiente."
+        )
+        return None
+
+    nome_unico = f"produto_{uuid.uuid4().hex[:10]}"
+    try:
+        resultado = cloudinary.uploader.upload(
+            arquivo,
+            folder="mercado_morcelle/produtos",
+            public_id=nome_unico,
+            resource_type="image",
+        )
+    except Exception as e:
+        app.logger.error(f"Erro ao enviar imagem para o Cloudinary: {e}")
+        return None
+
+    return {"url": resultado.get("secure_url"), "public_id": resultado.get("public_id")}
 
 
-def remover_arquivo_imagem(nome_arquivo):
-    if not nome_arquivo:
+def remover_arquivo_imagem(public_id):
+    """Remove uma imagem do Cloudinary a partir do seu public_id."""
+    if not public_id:
         return
-    caminho = os.path.join(app.config["UPLOAD_FOLDER"], nome_arquivo)
-    if os.path.exists(caminho):
-        try:
-            os.remove(caminho)
-        except OSError:
-            pass
+    try:
+        cloudinary.uploader.destroy(public_id, resource_type="image")
+    except Exception as e:
+        app.logger.error(f"Erro ao remover imagem do Cloudinary ({public_id}): {e}")
 
 
 def registrar_log(acao, descricao=""):
@@ -442,14 +687,17 @@ def admin_produto_novo():
 
         primeira = True
         for arquivo in arquivos_validos:
-            nome_arquivo = salvar_imagem(arquivo)
-            if nome_arquivo:
+            resultado_upload = salvar_imagem(arquivo)
+            if resultado_upload:
                 db.execute(
-                    """INSERT INTO imagens_produto (produto_id, arquivo, principal, criado_em)
-                       VALUES (?, ?, ?, ?)""",
-                    (produto_id, nome_arquivo, 1 if primeira else 0, agora),
+                    """INSERT INTO imagens_produto (produto_id, arquivo, public_id, principal, criado_em)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (produto_id, resultado_upload["url"], resultado_upload["public_id"],
+                     1 if primeira else 0, agora),
                 )
                 primeira = False
+            else:
+                flash(f"Não foi possível enviar a imagem '{arquivo.filename}'.", "erro")
 
         db.commit()
         registrar_log("Cadastro de produto", f"Produto '{nome}' cadastrado.")
@@ -513,15 +761,18 @@ def admin_produto_editar(produto_id):
         ).fetchone()["c"]
 
         for arquivo in novos_arquivos:
-            nome_arquivo = salvar_imagem(arquivo)
-            if nome_arquivo:
+            resultado_upload = salvar_imagem(arquivo)
+            if resultado_upload:
                 marcar_principal = 1 if tem_imagens == 0 else 0
                 db.execute(
-                    """INSERT INTO imagens_produto (produto_id, arquivo, principal, criado_em)
-                       VALUES (?, ?, ?, ?)""",
-                    (produto_id, nome_arquivo, marcar_principal, agora),
+                    """INSERT INTO imagens_produto (produto_id, arquivo, public_id, principal, criado_em)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (produto_id, resultado_upload["url"], resultado_upload["public_id"],
+                     marcar_principal, agora),
                 )
                 tem_imagens += 1
+            else:
+                flash(f"Não foi possível enviar a imagem '{arquivo.filename}'.", "erro")
 
         db.commit()
         registrar_log("Edição de produto", f"Produto '{nome}' (ID {produto_id}) atualizado.")
@@ -544,7 +795,7 @@ def admin_produto_excluir(produto_id):
         "SELECT * FROM imagens_produto WHERE produto_id = ?", (produto_id,)
     ).fetchall()
     for img in imagens:
-        remover_arquivo_imagem(img["arquivo"])
+        remover_arquivo_imagem(img["public_id"])
 
     db.execute("DELETE FROM produtos WHERE id = ?", (produto_id,))
     db.commit()
@@ -587,7 +838,7 @@ def admin_imagem_excluir(imagem_id):
     produto_id = imagem["produto_id"]
     era_principal = imagem["principal"]
 
-    remover_arquivo_imagem(imagem["arquivo"])
+    remover_arquivo_imagem(imagem["public_id"])
     db.execute("DELETE FROM imagens_produto WHERE id = ?", (imagem_id,))
 
     if era_principal:
